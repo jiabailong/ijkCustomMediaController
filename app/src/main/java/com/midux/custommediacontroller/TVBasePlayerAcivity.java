@@ -40,10 +40,10 @@ public class TVBasePlayerAcivity extends AppCompatActivity {
 
     private long mLastUpdateStatTime = 0;
     private String is_over = "0";
-    private int sv_height;//记录非全屏状态时，surfaceView的高度，以便退出全屏时，设置回来
+    private int sv_height=400;//记录非全屏状态时，surfaceView的高度，以便退出全屏时，设置回来
     boolean firstRendering = true;//视频第一次渲染，在OnInfoListener 中改变值，保证恢复到先前播放的进度
     private VideoController controller;
-    private FrameLayout fl_surfaceview_parent;
+    private AspectFrameLayout fl_surfaceview_parent;
     private boolean seekbarDrag = true;
     public static final String STREAM_URL_MP4_VOD_SHORT = "http://vfx.mtime.cn/Video/2019/03/19/mp4/190319212559089721.mp4";
     private boolean onComplet = false;//是否已经播放完一个视频
@@ -59,7 +59,7 @@ public class TVBasePlayerAcivity extends AppCompatActivity {
         mVideoPath = "";
 
         mSurfaceView = (SurfaceView) findViewById(R.id.surfaceView);
-        fl_surfaceview_parent = (FrameLayout) findViewById(R.id.fl_surfaceview_parent);
+        fl_surfaceview_parent = (AspectFrameLayout) findViewById(R.id.fl_surfaceview_parent);
         mSurfaceView.getHolder().addCallback(mCallback);
         mSurfaceWidth = getResources().getDisplayMetrics().widthPixels;
         mSurfaceHeight = getResources().getDisplayMetrics().heightPixels;
@@ -75,7 +75,6 @@ public class TVBasePlayerAcivity extends AppCompatActivity {
             @Override
             public void onGlobalLayout() {
                 mSurfaceView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                sv_height = mSurfaceView.getHeight();
                 mSurfaceView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, sv_height));
             }
         });
@@ -164,27 +163,30 @@ public class TVBasePlayerAcivity extends AppCompatActivity {
     //进入全屏的操作
     public void To_full_screen() {
         isFullScreen = true;
-        fl_surfaceview_parent.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT));
+        FrameLayout.LayoutParams temp=new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT);
+        temp.gravity=Gravity.CENTER;
+        fl_surfaceview_parent.setLayoutParams(temp);
         mSurfaceView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT));
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);//设置activity横屏
         getWindow().getDecorView().setSystemUiVisibility(View.INVISIBLE);//隐藏状态栏
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         Log.i("tag", "1--" + fl_surfaceview_parent.getMeasuredWidth() + "---" + fl_surfaceview_parent.getMeasuredHeight());
-        controller.To_change_screen(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT);
+        controller.To_change_screen(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
     }
 
     //退出全屏的操作
     public void Exit_full_screen() {
         isFullScreen = false;
-        fl_surfaceview_parent.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                sv_height));
+       FrameLayout.LayoutParams temp= new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                sv_height);
+       temp.gravity=Gravity.TOP;
+        fl_surfaceview_parent.setLayoutParams(temp);
+
         mSurfaceView.setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, sv_height));
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);//设置activity竖屏
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);//显示状态栏
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         Log.i("tag", "2--" + fl_surfaceview_parent.getWidth() + "---" + fl_surfaceview_parent.getHeight());
         controller.To_change_screen(FrameLayout.LayoutParams.MATCH_PARENT, sv_height);
@@ -273,14 +275,12 @@ public class TVBasePlayerAcivity extends AppCompatActivity {
                 @Override
                 public void onVideoSizeChanged(IMediaPlayer iMediaPlayer, int width, int height, int i2, int i3) {
                     if (width != 0 && height != 0) {
-                        float ratioW = (float) width / (float) mSurfaceWidth;
-                        float ratioH = (float) height / (float) mSurfaceHeight;
-                        float ratio = Math.max(ratioW, ratioH);
-                        width = (int) Math.ceil((float) width / ratio);
-                        height = (int) Math.ceil((float) height / ratio);
-                        FrameLayout.LayoutParams layout = new FrameLayout.LayoutParams(width, height);
-                        layout.gravity = Gravity.CENTER;
-                        mSurfaceView.setLayoutParams(layout);
+                        int videoWidth = iMediaPlayer.getVideoWidth();
+                        int videoHeight = iMediaPlayer.getVideoHeight();
+                        float ratio = (float)videoWidth/(float)videoHeight;
+                        Log.e("jbl==","w="+videoWidth+",h="+videoHeight+",i2="+i2+",i3="+i3);
+                        fl_surfaceview_parent.setAspectRatio(ratio);
+                        To_full_screen();
 
                     }
                 }
@@ -350,26 +350,11 @@ public class TVBasePlayerAcivity extends AppCompatActivity {
         }
     };
 
-    public void resume() {
-        controller.show();
-        mMediaPlayer.start();
-    }
-
-    public void pause() {
-        controller.show();
-        mMediaPlayer.pause();
-    }
-
-    public void stop() {
-        controller.show();
-        mMediaPlayer.stop();
-    }
 
     public boolean isPlaying() {
 
         return mMediaPlayer.isPlaying();
     }
-
 
     /**
      * 转换播放时间

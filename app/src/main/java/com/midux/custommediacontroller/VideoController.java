@@ -20,6 +20,7 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import java.lang.ref.WeakReference;
 import java.util.Locale;
 
 /**
@@ -172,7 +173,16 @@ public class VideoController extends FrameLayout implements MediaControllerInter
             }
         }
     };
-
+    public void videoPause(){
+        iv_play.setImageResource(R.mipmap.k_play);
+        showCneter();
+        mPlayer.VideoPause();
+    }
+    public void videoResume(){
+        iv_play.setImageResource(R.mipmap.k_stop);
+        hideCenter();//隐藏中心
+        mPlayer.VideoStart();
+    }
     //添加控制绑定
     public void setControl(MediaControllerInterface.MediaControl mPlayer) {
         this.mPlayer = mPlayer;
@@ -190,30 +200,7 @@ public class VideoController extends FrameLayout implements MediaControllerInter
         mAnchorVGroup.addView(controllerView, frameParams);
     }
 
-    @SuppressLint("HandlerLeak")
-    private Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            long progress;
-            switch (msg.what) {
-                case FADE_OUT:
-                    hide();
-                    break;
-                case SHOW_PROGRESS:
-                    if (mPlayer.isPlaying()) {
-                        progress = setProgress();
-                    } else {
-                        return;
-                    }
-
-                    if (mShowing && mPlayer.isPlaying()) {
-                        msg = obtainMessage(SHOW_PROGRESS);
-                        sendMessageDelayed(msg, SEEKBAR_MAX - (progress % SEEKBAR_MAX));
-                    }
-                    break;
-            }
-        }
-    };
+    private Handler mHandler = new InnerHandler(new WeakReference<VideoController>(this));
 
     private long setProgress() {
         if (mPlayer == null) {
@@ -336,7 +323,10 @@ public class VideoController extends FrameLayout implements MediaControllerInter
                 w,
                 h
         );
-        controllerView.setLayoutParams(frameParams);
+        if(controllerView!=null){
+            controllerView.setLayoutParams(frameParams);
+        }
+
     }
 
     @Override
@@ -392,5 +382,32 @@ public class VideoController extends FrameLayout implements MediaControllerInter
             mHandler.removeCallbacksAndMessages(null);
             mHandler = null;
         }
+    }
+    static class InnerHandler extends Handler{
+        VideoController vc;
+        public InnerHandler(WeakReference<VideoController>wk){
+            vc=wk.get();
+
+        }
+        @Override
+        public void handleMessage(Message msg) {
+            long progress;
+            switch (msg.what) {
+                case FADE_OUT:
+                    vc.hide();
+                    break;
+                case SHOW_PROGRESS:
+                    if (vc.mPlayer.isPlaying()) {
+                        progress = vc.setProgress();
+                    } else {
+                        return;
+                    }
+
+                    if (vc.mShowing && vc.mPlayer.isPlaying()) {
+                        msg = obtainMessage(SHOW_PROGRESS);
+                        sendMessageDelayed(msg, vc.SEEKBAR_MAX - (progress % vc.SEEKBAR_MAX));
+                    }
+                    break;
+            }        }
     }
 }

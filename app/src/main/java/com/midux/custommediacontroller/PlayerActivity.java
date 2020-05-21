@@ -17,6 +17,7 @@ public class PlayerActivity extends TVBasePlayerAcivity {
         if (!TextUtils.isEmpty(url)) {
             setVideoUrl(url);
         } else {
+//            setVideoUrl("http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4");
             setVideoUrl(STREAM_URL_MP4_VOD_SHORT);
         }
     }
@@ -44,17 +45,19 @@ public class PlayerActivity extends TVBasePlayerAcivity {
             case KeyEvent.KEYCODE_DPAD_DOWN://向下
                 if(isPlaying()){
                     Log.e("jbl","－－－－－暂停视频－－－－－");
-                    pause();
+                   getController().videoPause();
                 }else{
                     Log.e("jbl","－－－－－开始视频－－－－－");
-                    resume();
+                    getController().videoResume();
                 }
                 Log.e("jbl","－－－－－向下－－－－－");
                 break;
             case KeyEvent.KEYCODE_DPAD_LEFT://向左
                 Log.e("jbl","－－－－－向左－－－－－");
+                Exit_full_screen();
                 break;
             case KeyEvent.KEYCODE_DPAD_RIGHT://向右
+                To_full_screen();
                 Log.e("jbl","－－－－－向右－－－－－");
                 break;
             case KeyEvent.KEYCODE_ENTER://确定
