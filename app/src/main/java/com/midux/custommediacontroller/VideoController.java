@@ -17,7 +17,6 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -27,7 +26,7 @@ import java.util.Locale;
  * Created by yu_midux on 2018/3/21.
  */
 
-public class MyController extends FrameLayout implements MediaControllerInterface {
+public class VideoController extends FrameLayout implements MediaControllerInterface {
 
     private LinearLayout ll_top;
     private ImageView iv_collect;
@@ -49,15 +48,15 @@ public class MyController extends FrameLayout implements MediaControllerInterfac
     private long SEEKBAR_MAX = 1000L;
     private View controllerView;
 
-    public MyController(@NonNull Context context) {
+    public VideoController(@NonNull Context context) {
         this(context, null);
     }
 
-    public MyController(@NonNull Context context, @Nullable AttributeSet attrs) {
+    public VideoController(@NonNull Context context, @Nullable AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public MyController(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    public VideoController(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         mContext = context;
     }

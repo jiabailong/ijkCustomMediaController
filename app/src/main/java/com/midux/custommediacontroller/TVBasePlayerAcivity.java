@@ -27,11 +27,11 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 /**
  * 视频播放界面
  */
-public class MainAcivity extends AppCompatActivity {
-    private static final String TAG = "MainAcivity";
+public class TVBasePlayerAcivity extends AppCompatActivity {
+    private static final String TAG = "TVBasePlayerAcivity";
 
     private SurfaceView mSurfaceView;
-     IjkMediaPlayer mMediaPlayer;
+    IjkMediaPlayer mMediaPlayer;
 
     private int mSurfaceWidth = 0;
     private int mSurfaceHeight = 0;
@@ -42,22 +42,21 @@ public class MainAcivity extends AppCompatActivity {
     private String is_over = "0";
     private int sv_height;//记录非全屏状态时，surfaceView的高度，以便退出全屏时，设置回来
     boolean firstRendering = true;//视频第一次渲染，在OnInfoListener 中改变值，保证恢复到先前播放的进度
-    private MyController controller;
+    private VideoController controller;
     private FrameLayout fl_surfaceview_parent;
     private boolean seekbarDrag = true;
     public static final String STREAM_URL_MP4_VOD_SHORT = "http://vfx.mtime.cn/Video/2019/03/19/mp4/190319212559089721.mp4";
     private boolean onComplet = false;//是否已经播放完一个视频
+
     //视频播放完成监听
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setContentView(R.layout.module_activity_video_detail);
         super.onCreate(savedInstanceState);
         String CPU_ABI = android.os.Build.CPU_ABI;
-Log.e("jbl",CPU_ABI);
         boolean isLiveStreaming = getIntent().getIntExtra("liveStreaming", 0) == 1;
-
         //播放地址
-        mVideoPath = STREAM_URL_MP4_VOD_SHORT;
+        mVideoPath = "";
 
         mSurfaceView = (SurfaceView) findViewById(R.id.surfaceView);
         fl_surfaceview_parent = (FrameLayout) findViewById(R.id.fl_surfaceview_parent);
@@ -69,7 +68,7 @@ Log.e("jbl",CPU_ABI);
         AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
 
-        controller = new MyController(this);
+        controller = new VideoController(this);
 
         ViewTreeObserver vto2 = mSurfaceView.getViewTreeObserver();
         vto2.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
@@ -87,12 +86,11 @@ Log.e("jbl",CPU_ABI);
                 controller.show();
             }
         });
-        findViewById(R.id.play).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                controller.show();
-            }
-        });
+
+    }
+
+    public void setVideoUrl(String url) {
+        mVideoPath = url;
     }
 
     private boolean isPausing = false;//是否是暂停状态
@@ -249,26 +247,28 @@ Log.e("jbl",CPU_ABI);
             e.printStackTrace();
         }
     }
-    public void addListener(){
-        if(mMediaPlayer!=null){
-           mMediaPlayer.setOnBufferingUpdateListener(new IMediaPlayer.OnBufferingUpdateListener() {
-               @Override
-               public void onBufferingUpdate(IMediaPlayer iMediaPlayer, int i) {
-                   long current = System.currentTimeMillis();
-                   if (current - mLastUpdateStatTime > 3000) {
-                       mLastUpdateStatTime = current;
-                   }
-               }
-           });
-           mMediaPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
-               @Override
-               public void onPrepared(IMediaPlayer iMediaPlayer) {
-                   controller.setControl(mPlayerControl);
-                   controller.setAnchorView(fl_surfaceview_parent);
-                   controller.setSeekBarEnabled(false);
-                   mMediaPlayer.start();
-               }
-           });
+
+    public void addListener() {
+        if (mMediaPlayer != null) {
+            mMediaPlayer.setOnBufferingUpdateListener(new IMediaPlayer.OnBufferingUpdateListener() {
+                @Override
+                public void onBufferingUpdate(IMediaPlayer iMediaPlayer, int i) {
+                    Log.e("jbl", "onBufferingUpdate==" + i);
+                    long current = System.currentTimeMillis();
+                    if (current - mLastUpdateStatTime > 3000) {
+                        mLastUpdateStatTime = current;
+                    }
+                }
+            });
+            mMediaPlayer.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(IMediaPlayer iMediaPlayer) {
+                    controller.setControl(mPlayerControl);
+                    controller.setAnchorView(fl_surfaceview_parent);
+                    controller.setSeekBarEnabled(false);
+                    mMediaPlayer.start();
+                }
+            });
             mMediaPlayer.setOnVideoSizeChangedListener(new IMediaPlayer.OnVideoSizeChangedListener() {
                 @Override
                 public void onVideoSizeChanged(IMediaPlayer iMediaPlayer, int width, int height, int i2, int i3) {
@@ -283,7 +283,8 @@ Log.e("jbl",CPU_ABI);
                         mSurfaceView.setLayoutParams(layout);
 
                     }
-                }});
+                }
+            });
 
             mMediaPlayer.setOnControlMessageListener(new IjkMediaPlayer.OnControlMessageListener() {
                 @Override
@@ -301,18 +302,28 @@ Log.e("jbl",CPU_ABI);
             mMediaPlayer.setOnErrorListener(new IMediaPlayer.OnErrorListener() {
                 @Override
                 public boolean onError(IMediaPlayer iMediaPlayer, int errorCode, int i1) {
-                    switch (errorCode) {
-                        case IjkMediaPlayer.MEDIA_ERROR_IO://网络异常
-                            /**
-                             * SDK will do reconnecting automatically
-                             */
-                            //如果网络异常播放失败，尝试重新连接
-                            reload();
-                            return false;
-                        default://未知错误
+                    Log.e("jbl", "视频播放错误" + errorCode);
+                    // reload();
+                    return true;
+                }
+            });
+            mMediaPlayer.setOnInfoListener(new IMediaPlayer.OnInfoListener() {
+                @Override
+                public boolean onInfo(IMediaPlayer iMediaPlayer, int i, int i1) {
+                    switch (i) {
+                        case IjkMediaPlayer.MEDIA_INFO_BUFFERING_START:
+                            Log.e("jbl", "缓存开始");
+                            break;
+                        case IjkMediaPlayer.MEDIA_INFO_BUFFERING_END:
+                            Log.e("jbl", "缓存结束");
+
+                            break;
+                        case IjkMediaPlayer.MEDIA_INFO_VIDEO_RENDERING_START:
+                            Log.e("jbl", "视频开始渲染");
+
                             break;
                     }
-                    return true;
+                    return false;
                 }
             });
 
@@ -339,9 +350,25 @@ Log.e("jbl",CPU_ABI);
         }
     };
 
+    public void resume() {
+        controller.show();
+        mMediaPlayer.start();
+    }
 
+    public void pause() {
+        controller.show();
+        mMediaPlayer.pause();
+    }
 
+    public void stop() {
+        controller.show();
+        mMediaPlayer.stop();
+    }
 
+    public boolean isPlaying() {
+
+        return mMediaPlayer.isPlaying();
+    }
 
 
     /**
@@ -365,20 +392,15 @@ Log.e("jbl",CPU_ABI);
         return dateFormat.format(calendar.getTime());
     }
 
-    //视频播放状态监听
-
-
-
-
-
-
-
-
 
     //如果网络异常播放失败，尝试重新连接
     public void reload() {
         release();//先关闭先前的播放器
         //判断网络连接
         prepare();
+    }
+
+    public VideoController getController() {
+        return controller;
     }
 }
